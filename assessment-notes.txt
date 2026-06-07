@@ -1,0 +1,126 @@
+==============================================================
+  ECOMMERCE APP - CI/CD PIPELINE CASE STUDY DELIVERABLES
+==============================================================
+Repo: https://github.com/Msocial123/EcommerceApp.git
+Stack: Java + Maven + SonarQube + Jenkins + Ansible + Tomcat + Docker
+
+==============================================================
+1. CI/CD ARCHITECTURE DIAGRAM & COMPONENTS
+==============================================================
+Below is the text-based representation of the CI/CD Architecture Flow:
+
+Developer (Pushes Code)
+   │
+   ▼
+GitHub Repository (Msocial123/EcommerceApp.git)
+   │
+   ▼ (Webhook / Poll SCM)
+Jenkins CI/CD Server (Orchestrator)
+   │
+   ├──► Stage 1: Checkout Code
+   │
+   ├──► Stage 2: SonarQube Code Quality Validation (Port 9000)
+   │             (Static Analysis: Bugs, Vulnerabilities, Quality Gate check)
+   │             ├─► [FAIL] ──► Abort & Email Notification
+   │             └─► [PASS] ──► Proceed
+   │
+   ├──► Stage 3: Maven Build Server (Compile, package dependency check)
+   │             └─► Generates: target/EcommerceApp.war
+   │
+   └──► Stage 4: Ansible Config Management Server
+                 (SSH remote command execution)
+                 │
+                 ├──► Stop Apache Tomcat (Port 8080)
+                 ├──► Transfer and Deploy EcommerceApp.war
+                 ├──► Start Apache Tomcat
+                 └──► Verify App Health (HTTP 200 check)
+
+Architecture Components Details:
+- Developer: Writes code and manages versioning via Git.
+- GitHub: Centralized source repository acting as the single source of truth.
+- Jenkins (CI/CD Platform): Manages task scheduling, plugin orchestrations, and pipeline execution.
+- SonarQube (Code Quality Platform): Checks code complexity, detects technical debt, code smells, bugs, and vulnerability rules.
+- Maven (Build System): Manages Java dependencies and builds the final deployable .war package.
+- Ansible (Configuration Management): Executes agentless, remote automation via SSH.
+- Tomcat (Application Server): Hosts JSP/Servlet applications, rendering web views on port 8080.
+
+==============================================================
+2. COMPLETE PIPELINE WORKFLOW (STAGES 1 - 4)
+==============================================================
+The pipeline is defined declaratively inside the repository's Jenkinsfile:
+
+- Stage 1: Source Code Management (CheckOutCode)
+  - Clones the `master` branch from the Git repo.
+  - Keeps commit hashes and branch metadata to maintain version tracking.
+  - Code:
+    git branch: 'master', url: 'https://github.com/Msocial123/EcommerceApp.git'
+
+- Stage 2: Code Quality Validation (SonarQube Analysis & Quality Gate)
+  - Connects to the SonarQube server.
+  - Scans code using: `mvn sonar:sonar -Dsonar.host.url=http://<SONAR-IP>:9000`
+  - Blocks and queries the SonarQube API using: `waitForQualityGate abortPipeline: true`
+  - Condition: If status is not "OK" (FAIL), the pipeline terminates immediately to prevent building/deploying faulty code.
+
+- Stage 3: Application Build (Build)
+  - Runs compilation and packages dependencies using: `mvn clean package`
+  - Performs unit tests and packages the app as: `target/EcommerceApp.war`
+
+- Stage 4: Deployment Automation (Deploy via Ansible)
+  - Jenkins triggers the Ansible execution step:
+    ansible-playbook -i inventory ansible-deploy.yaml
+  - Ansible connects to the Tomcat server remotely over SSH to perform the deployment.
+
+==============================================================
+3. TOOL INTEGRATION DESIGN
+==============================================================
+Tools interact dynamically during pipeline execution:
+1. GitHub ──► Jenkins: Jenkins uses GitHub Webhooks or Poll SCM (configured for every minute `* * * * *`) to automatically trigger builds on code updates.
+2. Jenkins ──► SonarQube: Jenkins uses the SonarQube Scanner plugin to submit code analysis. The Quality Gate webhook returns the status back to Jenkins.
+3. Jenkins ──► Maven: Jenkins manages Maven installations (version `maven3.8.2`) to download dependencies and build the artifact.
+4. Jenkins ──► Ansible: Jenkins invokes Ansible playbooks directly from the workspace execution shell using global environment variables.
+5. Ansible ──► Tomcat: Ansible uses SSH keys (`~/.ssh/key.pem`) to remotely login to the Tomcat server, execute bash commands, and run curl checks.
+
+==============================================================
+4. DEPLOYMENT STRATEGY
+==============================================================
+- Automated Push-based Deployment: Deployment is automated completely through Ansible. No manual SSH or configuration changes are permitted.
+- Active Deployment Replacement:
+  1. The new deployment transfers the compiled `EcommerceApp.war` file to the Tomcat server's `/usr/local/apache-tomcat/webapps/` directory.
+  2. The existing `EcommerceApp` folder is cleared, and the server extracts the new package.
+- Availability Verification:
+  - Once Tomcat is started, Ansible queries the application context root:
+    http://<TOMCAT_IP>:8080/EcommerceApp/
+  - The deployment is only marked successful if it returns an HTTP status of `200 OK`.
+
+==============================================================
+5. INFRASTRUCTURE AUTOMATION APPROACH
+==============================================================
+All server administration tasks are fully declared and managed via Ansible scripts:
+- Inventory Management (`inventory` file): Defines target Tomcat server hostname, SSH user (`ec2-user`), and private key path.
+- Playbook Orchestration (`ansible-deploy.yaml`):
+  - Tomcat Service Management: Automatically stops Tomcat to avoid locking file handles during file replacement:
+    `sudo systemctl stop tomcat`
+  - File Cleaning: Deletes the old `.war` and unpacked application directory.
+  - Artifact Transfer: Automatically copies the new `.war` file to target location.
+  - Service Recovery: Restarts Tomcat and verifies process state.
+  - Zero-touch Operations: Eliminates manual server interaction, keeping all steps reproducible.
+
+==============================================================
+6. SECURITY AND CREDENTIAL MANAGEMENT APPROACH
+==============================================================
+Production security is managed by preventing credentials from being hardcoded in code:
+- Jenkins Credentials Store: SSH private keys (`key.pem`) and SonarQube API tokens are stored securely in Jenkins using unique ID handles.
+- Ansible SSH Keys: Ansible connects using keys stored in the user's home directory (`~/.ssh/key.pem`) with `600` permissions.
+- Transport Layer Security: Communication between servers is encrypted using standard SSH (port 22).
+- Least Privilege Access: Tomcat runs as a dedicated system user `tomcat` rather than root.
+
+==============================================================
+7. FAILURE HANDLING AND ROLLBACK STRATEGY
+==============================================================
+1. Static Analysis Failures: If Quality Gate fails, Jenkins terminates the pipeline. No artifact is built and the server remains untouched (no downtime, running version remains active).
+2. Compilation Failures: If Maven build fails, Jenkins aborts the pipeline and triggers a `failure` post-step to notify the engineering team via email.
+3. Ansible Deployment Failures: If the Tomcat server does not return `200 OK` on health pings, Ansible aborts, keeping the deployment in a failed state to prevent traffic routing.
+4. Rollback Plan:
+  - Re-run Build: Run a previous stable Jenkins build from the history log.
+  - Git Reversion: Revert the code change on `master` branch using `git revert`, which auto-triggers a new build deploying the previous stable version.
+==============================================================

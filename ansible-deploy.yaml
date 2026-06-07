@@ -1,0 +1,45 @@
+---
+# Ansible playbook for EcommerceApp deployment - Stage 4 as per docx
+# Automates: stop tomcat → delete old WAR → copy new WAR → start tomcat → verify 200 OK
+
+- hosts: appservers
+  become: true
+  tasks:
+
+    - name: Stop Tomcat service
+      systemd:
+        name: tomcat.service
+        state: stopped
+
+    - name: Delete old EcommerceApp WAR
+      file:
+        path: /usr/local/apache-tomcat/webapps/EcommerceApp.war
+        state: absent
+
+    - name: Delete old EcommerceApp directory
+      file:
+        path: /usr/local/apache-tomcat/webapps/EcommerceApp
+        state: absent
+
+    - name: Copy new EcommerceApp WAR to Tomcat
+      copy:
+        src: EcommerceApp/target/EcommerceApp.war
+        dest: /usr/local/apache-tomcat/webapps/EcommerceApp.war
+        owner: tomcat
+        group: tomcat
+
+    - name: Start Tomcat service
+      systemd:
+        name: tomcat.service
+        state: started
+        daemon_reload: yes
+        enabled: yes
+
+    - name: Wait for Tomcat to start
+      pause:
+        minutes: 1
+
+    - name: Verify application returns 200 OK
+      uri:
+        url: "http://{{ ansible_host }}:8080/EcommerceApp/"
+        status_code: 200
