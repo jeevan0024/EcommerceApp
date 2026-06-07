@@ -28,7 +28,7 @@ pipeline {
             steps {
                 dir('EcommerceApp') {
                     withSonarQubeEnv('SonarQube') {
-                        sh 'mvn sonar:sonar -Dsonar.login=admin -Dsonar.password=Jeevan0024'
+                        sh 'mvn clean compile sonar:sonar -Dsonar.login=admin -Dsonar.password=Jeevan0024'
                     }
                 }
             }
