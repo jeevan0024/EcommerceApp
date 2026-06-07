@@ -6,8 +6,33 @@
   become: true
   tasks:
 
+    - name: Create tomcat systemd service file
+      copy:
+        dest: /etc/systemd/system/tomcat.service
+        content: |
+          [Unit]
+          Description=Apache Tomcat 9 Web Application Container
+          After=network.target
+
+          [Service]
+          Type=forking
+          User=tomcat
+          Group=tomcat
+          Environment="JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64"
+          ExecStart=/usr/local/apache-tomcat/bin/startup.sh
+          ExecStop=/usr/local/apache-tomcat/bin/shutdown.sh
+
+          [Install]
+          WantedBy=multi-user.target
+
+    - name: Reload systemd daemon
+      systemd:
+        daemon_reload: yes
+
     - name: Stop Tomcat service
-      shell: /usr/local/apache-tomcat/bin/shutdown.sh
+      systemd:
+        name: tomcat
+        state: stopped
       ignore_errors: yes
 
     - name: Delete old EcommerceApp WAR
@@ -28,7 +53,10 @@
         group: tomcat
 
     - name: Start Tomcat service
-      shell: /usr/local/apache-tomcat/bin/startup.sh
+      systemd:
+        name: tomcat
+        state: started
+        enabled: yes
 
     - name: Wait for Tomcat to start
       pause:
@@ -38,3 +66,4 @@
       uri:
         url: "http://{{ ansible_host }}:8080/EcommerceApp/"
         status_code: 200
+
