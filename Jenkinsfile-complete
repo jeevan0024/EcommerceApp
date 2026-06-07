@@ -20,14 +20,16 @@ pipeline {
 
         stage('CheckOutCode') {
             steps {
-                git branch: 'master', url: 'https://github.com/Msocial123/EcommerceApp.git'
+                git branch: 'main', url: 'https://github.com/jeevan0024/EcommerceApp.git'
             }
         }
 
         stage('SonarQube Analysis') {
             steps {
                 dir('EcommerceApp') {
-                    sh 'mvn sonar:sonar -Dsonar.host.url=http://<SONAR-IP>:9000 -Dsonar.login=<SONAR-TOKEN>'
+                    withSonarQubeEnv('SonarQube') {
+                        sh 'mvn sonar:sonar -Dsonar.login=admin -Dsonar.password=Jeevan0024'
+                    }
                 }
             }
         }

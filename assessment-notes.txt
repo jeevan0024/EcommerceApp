@@ -1,7 +1,7 @@
 ==============================================================
   ECOMMERCE APP - CI/CD PIPELINE CASE STUDY DELIVERABLES
 ==============================================================
-Repo: https://github.com/Msocial123/EcommerceApp.git
+Repo: https://github.com/jeevan0024/EcommerceApp.git
 Stack: Java + Maven + SonarQube + Jenkins + Ansible + Tomcat + Docker
 
 ==============================================================
@@ -12,7 +12,7 @@ Below is the text-based representation of the CI/CD Architecture Flow:
 Developer (Pushes Code)
    │
    ▼
-GitHub Repository (Msocial123/EcommerceApp.git)
+GitHub Repository (jeevan0024/EcommerceApp.git)
    │
    ▼ (Webhook / Poll SCM)
 Jenkins CI/CD Server (Orchestrator)
@@ -50,10 +50,10 @@ Architecture Components Details:
 The pipeline is defined declaratively inside the repository's Jenkinsfile:
 
 - Stage 1: Source Code Management (CheckOutCode)
-  - Clones the `master` branch from the Git repo.
+  - Clones the `main` branch from the Git repo.
   - Keeps commit hashes and branch metadata to maintain version tracking.
   - Code:
-    git branch: 'master', url: 'https://github.com/Msocial123/EcommerceApp.git'
+    git branch: 'main', url: 'https://github.com/jeevan0024/EcommerceApp.git'
 
 - Stage 2: Code Quality Validation (SonarQube Analysis & Quality Gate)
   - Connects to the SonarQube server.

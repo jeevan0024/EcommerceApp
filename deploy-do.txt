@@ -2,7 +2,7 @@
   ECOMMERCE APP - FULL DEPLOYMENT STEPS (PowerShell/Linux)
 ==============================================================
 Stack: Jenkins + SonarQube + Maven + Ansible + Tomcat + Docker
-Repo: https://github.com/Msocial123/EcommerceApp.git
+Repo: https://github.com/jeevan0024/EcommerceApp.git
 
 ==============================================================
 PHASE 1 — Launch EC2 Servers (AWS Console or CLI)
@@ -21,9 +21,9 @@ Security Groups:
 PHASE 2 — Install Jenkins (on Jenkins server)
 ==============================================================
 sudo apt update
-sudo apt install -y openjdk-17-jdk
-curl -fsSL https://pkg.jenkins.io/debian/jenkins.io-2023.key | sudo tee /usr/share/keyrings/jenkins-keyring.asc > /dev/null
-echo deb [signed-by=/usr/share/keyrings/jenkins-keyring.asc] https://pkg.jenkins.io/debian binary/ | sudo tee /etc/apt/sources.list.d/jenkins.list > /dev/null
+sudo apt install -y openjdk-21-jdk
+sudo wget -O /usr/share/keyrings/jenkins-keyring.asc https://pkg.jenkins.io/debian-stable/jenkins.io-2026.key
+echo "deb [signed-by=/usr/share/keyrings/jenkins-keyring.asc] https://pkg.jenkins.io/debian-stable binary/" | sudo tee /etc/apt/sources.list.d/jenkins.list > /dev/null
 sudo apt update
 sudo apt install -y jenkins
 sudo systemctl start jenkins
@@ -44,7 +44,7 @@ In Jenkins UI: Manage Jenkins → Tools → Maven → Add → Name: maven3.8.2
 PHASE 4 — Install SonarQube (on SonarQube server)
 ==============================================================
 sudo apt update
-sudo apt install -y openjdk-17-jdk
+sudo apt install -y openjdk-17-jdk unzip
 wget https://binaries.sonarsource.com/Distribution/sonarqube/sonarqube-9.9.0.65466.zip
 unzip sonarqube-9.9.0.65466.zip
 sudo mv sonarqube-9.9.0.65466 /opt/sonarqube
@@ -53,7 +53,7 @@ sudo chown -R sonar:sonar /opt/sonarqube
 sudo -u sonar /opt/sonarqube/bin/linux-x86-64/sonar.sh start
 
 Access SonarQube: http://<SONAR-IP>:9000
-Default login: admin / admin → change to Mur@li2025
+Default login: admin / admin → change to admin
 
 ==============================================================
 PHASE 5 — Connect Jenkins to SonarQube
@@ -70,7 +70,7 @@ PHASE 6 — Install Tomcat (on App server)
 ==============================================================
 sudo apt update
 sudo apt install -y openjdk-17-jdk
-wget https://dlcdn.apache.org/tomcat/tomcat-9/v9.0.87/bin/apache-tomcat-9.0.87.tar.gz
+wget https://archive.apache.org/dist/tomcat/tomcat-9/v9.0.87/bin/apache-tomcat-9.0.87.tar.gz
 sudo tar -xzf apache-tomcat-9.0.87.tar.gz -C /usr/local/
 sudo mv /usr/local/apache-tomcat-9.0.87 /usr/local/apache-tomcat
 sudo useradd -r -s /bin/false tomcat
@@ -82,7 +82,7 @@ PHASE 7 — Install Ansible (on Jenkins server)
 ==============================================================
 sudo apt update
 sudo apt install -y ansible
-
+copy .pem key to instance change permissions.
 Edit inventory file - replace <APP_SERVER_IP> with Tomcat server IP
 Test connection:
   ansible all -i inventory -m ping
@@ -94,8 +94,8 @@ In Jenkins UI:
   New Item → Pipeline → Name: ecommerce-app-pipeline
   Pipeline Definition: Pipeline script from SCM
   SCM: Git
-  Repository URL: https://github.com/Msocial123/EcommerceApp.git
-  Branch: master
+  Repository URL: https://github.com/jeevan0024/EcommerceApp.git
+  Branch: main
   Script Path: Jenkinsfile-complete
   Save → Build Now
 

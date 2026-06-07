@@ -7,9 +7,8 @@
   tasks:
 
     - name: Stop Tomcat service
-      systemd:
-        name: tomcat.service
-        state: stopped
+      shell: /usr/local/apache-tomcat/bin/shutdown.sh
+      ignore_errors: yes
 
     - name: Delete old EcommerceApp WAR
       file:
@@ -29,11 +28,7 @@
         group: tomcat
 
     - name: Start Tomcat service
-      systemd:
-        name: tomcat.service
-        state: started
-        daemon_reload: yes
-        enabled: yes
+      shell: /usr/local/apache-tomcat/bin/startup.sh
 
     - name: Wait for Tomcat to start
       pause:
