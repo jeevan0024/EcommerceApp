@@ -29,6 +29,13 @@
       systemd:
         daemon_reload: yes
 
+    - name: Ensure correct ownership of Tomcat directory
+      file:
+        path: /usr/local/apache-tomcat
+        owner: tomcat
+        group: tomcat
+        recurse: yes
+
     - name: Stop Tomcat service
       systemd:
         name: tomcat
